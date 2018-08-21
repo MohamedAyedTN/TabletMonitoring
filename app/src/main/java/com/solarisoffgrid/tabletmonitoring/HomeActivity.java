@@ -7,8 +7,10 @@ import android.content.ComponentName;
 import android.content.Context;
 
 import android.content.Intent;
+import android.database.Cursor;
 import android.media.session.MediaSession;
 import android.os.Bundle;
+import android.provider.Browser;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
@@ -16,15 +18,22 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.media.session.MediaSession;
+
+import java.util.List;
 import java.util.Random;
+
+import me.everything.providers.android.browser.Bookmark;
+import me.everything.providers.android.browser.BrowserProvider;
 
 public class HomeActivity extends Activity implements OnClickListener {
     private Button lock;
     private Button disable;
     private Button enable;
+    private Button top_app;
+    private Button top_url;
     private int password=1234;
     static final int RESULT_ENABLE = 1;
-
+private final Context ctx = this;
     DevicePolicyManager deviceManger;
     ActivityManager activityManager;
     ComponentName compName;
@@ -42,8 +51,16 @@ public class HomeActivity extends Activity implements OnClickListener {
         lock.setOnClickListener(this);
         disable = findViewById(R.id.btnDisableAdmin);
         enable = findViewById(R.id.btnEnableAdmin);
+        top_app = findViewById(R.id.btntop_app);
+        top_url = findViewById(R.id.btntop_url);
+        top_url.setOnClickListener(this);
+        top_app.setOnClickListener(this);
         disable.setOnClickListener(this);
         enable.setOnClickListener(this);
+
+
+Log.i("gfx","start");
+
     }
     public void sendNotification(String password) {
         NotificationCompat.Builder mBuilder =
@@ -85,6 +102,15 @@ public class HomeActivity extends Activity implements OnClickListener {
 
         if(v == disable){
             deviceManger.removeActiveAdmin(compName);
+        }
+
+        if(v == top_app){
+            Intent i = new Intent(getApplicationContext(),UsageStatsActivity.class);
+            startActivity(i);
+                }
+        if(v == top_url){
+            Intent i = new Intent(getApplicationContext(),URLActivity.class);
+            startActivity(i);
         }
     }
 
