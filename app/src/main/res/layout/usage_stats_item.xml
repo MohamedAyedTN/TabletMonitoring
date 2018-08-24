@@ -10,29 +10,35 @@
         android:id="@+id/package_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"/>
-
+        android:layout_gravity="center"
+        android:layout_weight="2"/>
+<LinearLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_weight="6">
     <TextView
         android:id="@+id/package_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="left"
+        android:textStyle="bold"
         android:maxLines="1"
         android:paddingEnd="6dip"
         android:paddingStart="12dip"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:layout_weight="5"/>
+        />
 
     <TextView
         android:id="@+id/last_time_used"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:maxLines="1"
-        android:layout_gravity="right"
+        android:layout_gravity="left"
         android:paddingEnd="6dip"
         android:paddingStart="12dip"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:layout_weight="1"/>
+        />
 
     <TextView
         android:id="@+id/usage_time"
@@ -40,8 +46,29 @@
         android:layout_height="wrap_content"
         android:maxLines="1"
         android:paddingEnd="6dip"
-        android:layout_gravity="right"
+        android:layout_gravity="left"
         android:paddingStart="12dip"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:layout_weight="1"/>
+        />
+    <TextView
+        android:id="@+id/category"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:paddingEnd="6dip"
+        android:layout_gravity="left"
+        android:paddingStart="12dip"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        />
+    <TextView
+        android:id="@+id/usage_data"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:paddingEnd="6dip"
+        android:layout_gravity="left"
+        android:paddingStart="12dip"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        />
+</LinearLayout>
 </LinearLayout>

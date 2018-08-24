@@ -3,6 +3,7 @@ package com.solarisoffgrid.tabletmonitoring;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.format.DateUtils;
@@ -34,12 +35,10 @@ public class URLActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_url);
-        mInflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-       ListView listView = (ListView) findViewById(R.id.url_list);
+        mInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        ListView listView = (ListView) findViewById(R.id.url_list);
         mAdapter = new URLAdapter();
         listView.setAdapter(mAdapter);
-
     }
 
     static class AppViewHolder {
@@ -49,61 +48,62 @@ public class URLActivity extends AppCompatActivity {
         ImageView urlIcon;
     }
 
-    class URLAdapter extends BaseAdapter {
+    public String extractTitle(String title){
+        return title.subSequence(title.indexOf(".")+1,title.indexOf(".",title.indexOf(".")+1)).toString();
+    }
 
+    class URLAdapter extends BaseAdapter {
         List<Bookmark> bookmarks;
 
         public URLAdapter() {
             BrowserProvider browserProvider = new BrowserProvider(ctx);
-            bookmarks= new ArrayList<>();
+            bookmarks = new ArrayList<>();
             bookmarks = browserProvider.getBookmarks().getList();
-          List<Bookmark> bks = new ArrayList<>();
+            List<Bookmark> bks = new ArrayList<>();
+            for (int i = 0; i < bookmarks.size(); i++) {
 
-       for(int i=0;i<bookmarks.size();i++){
+                boolean duplicate = false;
+                int duplicateIndex = 0;
+                if (bookmarks.get(i).visits != 0) {
+                    for (int j = 0; j < bks.size(); j++) {
+                        if(extractTitle(bookmarks.get(i).url).equals(extractTitle(bks.get(j).url)))
+                        {
+                            duplicate = true;
+                            duplicateIndex = j;
+                            break;
+                        }
+                    }
+                    if (!duplicate) {
+                        bks.add(bookmarks.get(i));
+                    } else {
+                        if (bookmarks.get(i).visits > bks.get(duplicateIndex).visits) {
+                            bks.remove(duplicateIndex);
+                            bks.add(bookmarks.get(i));
+                        }
+                    }
 
-           boolean duplicate = false;
-           int duplicateIndex = 0;
-           if(bookmarks.get(i).visits!=0) {
-               for (int j = 0; j < bks.size(); j++) {
-                   if (bookmarks.get(i).title.contains(bks.get(j).title)) {
-                       duplicate = true;
-                       duplicateIndex=j;
-                       break;
-                   }
-               }
-               if(!duplicate) {
-                   bks.add(bookmarks.get(i));
-               }else{
-                   if (bookmarks.get(i).visits>bks.get(duplicateIndex).visits){
-                        bks.remove(duplicateIndex);
-                       bks.add(bookmarks.get(i));
-                   }
-               }
-
-           }
+                }
             }
-            bookmarks=bks;
+            bookmarks = bks;
             Collections.sort(bookmarks, new Comparator<Bookmark>() {
                 public int compare(Bookmark o1, Bookmark o2) {
-                    if(o1.visits<o2.visits)
-                    return 1;
-                    else if(o1.visits>o2.visits)
+                    if (o1.visits < o2.visits)
+                        return 1;
+                    else if (o1.visits > o2.visits)
                         return -1;
                     else return 0;
                 }
             });
 
-            for(Bookmark bk : bookmarks) {
+            for (Bookmark bk : bookmarks) {
                 Log.d("url: ", bk.url + "\ntitle: " + bk.title + "\nvisited: " + bk.visits);
             }
         }
 
 
-
-
         @Override
         public int getCount() {
-            return bookmarks.size()>10?10:bookmarks.size();
+            return bookmarks.size() > 10 ? 10 : bookmarks.size();
         }
 
         @Override
@@ -121,49 +121,34 @@ public class URLActivity extends AppCompatActivity {
             AppViewHolder holder;
 
             if (convertView == null) {
-               convertView = mInflater.inflate(R.layout.url_item, null);
+                convertView = mInflater.inflate(R.layout.url_item, null);
                 holder = new AppViewHolder();
                 holder.urlTitle = convertView.findViewById(R.id.url_title);
-                holder.lastTimeVisited =  convertView.findViewById(R.id.last_time_visited);
-                holder.numberOfVisit =  convertView.findViewById(R.id.number_of_visit);
+                holder.lastTimeVisited = convertView.findViewById(R.id.last_time_visited);
+                holder.numberOfVisit = convertView.findViewById(R.id.number_of_visit);
                 holder.urlIcon = convertView.findViewById(R.id.url_icon);
                 convertView.setTag(holder);
             } else {
                 holder = (AppViewHolder) convertView.getTag();
             }
-
-           Bookmark bookmark = bookmarks.get(position);
-            holder = new AppViewHolder();
-
-                holder.urlTitle.setText(bookmark.title);
-                holder.lastTimeVisited.setText(DateUtils.formatSameDayTime(bookmark.date,
-                        System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM));
-                holder.numberOfVisit.setText(bookmark.visits+"");
-
-            Log.d("icon",bookmark.url);
+            Bookmark bookmark = bookmarks.get(position);
+            holder.urlTitle.setText(extractTitle(bookmark.url));
+            holder.lastTimeVisited.setText("Last visit: "+DateUtils.formatSameDayTime(bookmark.date,
+                    System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM));
+            holder.numberOfVisit.setText("Visits: "+bookmark.visits);
             try {
                 Bitmap bmp = BitmapFactory.decodeByteArray(bookmark.favicon, 0, bookmark.favicon.length);
+                bmp=Bitmap.createScaledBitmap(bmp,50,50,false);
                 holder.urlIcon.setImageBitmap(bmp);
-            }catch (NullPointerException e){
-
+            } catch (NullPointerException e) {
+                Bitmap bMap = BitmapFactory.decodeResource(getResources(), R.drawable.stepfinal2);
+                Bitmap bMapScaled = Bitmap.createScaledBitmap(bMap, 50, 50, true);
+                holder.urlIcon.setImageBitmap(bMapScaled);
             }
-
-            /*    try{
-                    ApplicationInfo appInfo = mPm.getApplicationInfo(pkgStats.getPackageName(), 0);
-                    Drawable icon = appInfo.loadIcon(mPm);
-                    holder.pkgIcon.setImageDrawable(icon);
-                } catch (PackageManager.NameNotFoundException e) {
-                    // This package may be gone.
-                }*/
 
             return convertView;
         }
     }
-
-
-
-
-
 
 
 }

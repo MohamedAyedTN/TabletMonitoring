@@ -1,6 +1,7 @@
 package com.solarisoffgrid.tabletmonitoring;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AppOpsManager;
 import android.app.NotificationManager;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
@@ -10,6 +11,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.media.session.MediaSession;
 import android.os.Bundle;
+import android.os.Process;
 import android.provider.Browser;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -24,6 +26,9 @@ import java.util.Random;
 
 import me.everything.providers.android.browser.Bookmark;
 import me.everything.providers.android.browser.BrowserProvider;
+
+import static android.app.AppOpsManager.MODE_ALLOWED;
+import static android.app.AppOpsManager.OPSTR_GET_USAGE_STATS;
 
 public class HomeActivity extends Activity implements OnClickListener {
     private Button lock;
@@ -59,8 +64,15 @@ private final Context ctx = this;
         enable.setOnClickListener(this);
 
 
+
 Log.i("gfx","start");
 
+    }
+
+    private boolean checkForPermission(Context context) {
+        AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOps.checkOpNoThrow(OPSTR_GET_USAGE_STATS, 0, context.getPackageName());
+        return mode == MODE_ALLOWED;
     }
     public void sendNotification(String password) {
         NotificationCompat.Builder mBuilder =
