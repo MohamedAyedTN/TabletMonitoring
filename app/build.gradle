@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '28.0.3'
     defaultConfig {
         applicationId "com.solarisoffgrid.tabletmonitoring"
         minSdkVersion 23
@@ -20,12 +20,20 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'me.everything:providers-android:1.0.1'
-    compile group: 'org.jsoup', name: 'jsoup', version: '1.11.1'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'me.everything:providers-android:1.0.1'
+    implementation group: 'org.jsoup', name: 'jsoup', version: '1.11.1'
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:26.0.0-alpha1'
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+
     testCompile 'junit:junit:4.12'
+    implementation 'com.google.firebase:firebase-database:16.0.1'
+    implementation 'com.google.firebase:firebase-auth:16.0.1'
+    implementation 'postgresql:postgresql:9.0-801.jdbc4'
+
 }
+apply plugin: 'com.google.gms.google-services'

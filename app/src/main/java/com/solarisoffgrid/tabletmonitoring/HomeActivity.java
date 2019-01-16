@@ -1,55 +1,53 @@
 package com.solarisoffgrid.tabletmonitoring;
+
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.AppOpsManager;
-import android.app.NotificationManager;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
-
 import android.content.Intent;
-import android.database.Cursor;
-import android.media.session.MediaSession;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Process;
-import android.provider.Browser;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.media.session.MediaSessionCompat;
+import android.provider.Settings;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.media.session.MediaSession;
 
-import java.util.List;
-import java.util.Random;
-
-import me.everything.providers.android.browser.Bookmark;
-import me.everything.providers.android.browser.BrowserProvider;
-
-import static android.app.AppOpsManager.MODE_ALLOWED;
-import static android.app.AppOpsManager.OPSTR_GET_USAGE_STATS;
+import static android.app.AppOpsManager.OPSTR_WRITE_SETTINGS;
 
 public class HomeActivity extends Activity implements OnClickListener {
+    static final int RESULT_ENABLE = 1;
+    private final Context ctx = this;
+    public String serialNumber = "";
+    public SharedPreferences sharedPreferences;
+    DevicePolicyManager deviceManger;
+    ActivityManager activityManager;
+    ComponentName compName;
     private Button lock;
     private Button disable;
     private Button enable;
     private Button top_app;
     private Button top_url;
-    private int password=1234;
-    static final int RESULT_ENABLE = 1;
-private final Context ctx = this;
-    DevicePolicyManager deviceManger;
-    ActivityManager activityManager;
-    ComponentName compName;
+    private Button login;
+    private String password;
+    private PendingIntent pendingIntent;
+    private AlarmManager manager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        deviceManger = (DevicePolicyManager)getSystemService(
+        deviceManger = (DevicePolicyManager) getSystemService(
                 Context.DEVICE_POLICY_SERVICE);
-        activityManager = (ActivityManager)getSystemService(
+        activityManager = (ActivityManager) getSystemService(
                 Context.ACTIVITY_SERVICE);
         compName = new ComponentName(this, MyAdminReceiver.class);
         lock = findViewById(R.id.btnLock);
@@ -58,51 +56,85 @@ private final Context ctx = this;
         enable = findViewById(R.id.btnEnableAdmin);
         top_app = findViewById(R.id.btntop_app);
         top_url = findViewById(R.id.btntop_url);
+        login = findViewById(R.id.btnlogin);
+        login.setOnClickListener(this);
         top_url.setOnClickListener(this);
         top_app.setOnClickListener(this);
         disable.setOnClickListener(this);
         enable.setOnClickListener(this);
+        sharedPreferences = getSharedPreferences("tablet", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean("service_running", false);
+        editor.commit();
+        if (checkForPermission(ctx, OPSTR_WRITE_SETTINGS)) {
+            Log.i("permission", "checked");
+        }
+        if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+         /*   ActivityCompat.requestPermissions(HomeActivity.this,
+                    new String[]{Manifest.permission.READ_PHONE_STATE},
+                    123);*/
+            Log.i("Serial", "fail");
+        } else {
+            serialNumber = Build.SERIAL != Build.UNKNOWN ? Build.SERIAL : Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            editor.putString("serial_number", serialNumber);
+            editor.commit();
+        }
 
 
-
-Log.i("gfx","start");
-
+        Intent alarmIntent = new Intent(this, BackgroundCheckReceiver.class).addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+        pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, 0);
+        manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        int interval = 10000;
+        manager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
+        sendBroadcast(alarmIntent);
+        if (!isOnline()) {
+            Log.i("servicebg", "no cnction");
+        }
+        startService(new Intent(this, ConnectionService.class));
+        Log.i("servicebg", "intent sent");
     }
 
-    private boolean checkForPermission(Context context) {
-        AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
-        int mode = appOps.checkOpNoThrow(OPSTR_GET_USAGE_STATS, 0, context.getPackageName());
-        return mode == MODE_ALLOWED;
+    private boolean checkForPermission(Context context, String permission) {
+        int result = ContextCompat.checkSelfPermission(context, permission);
+        if (result == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        } else {
+            return false;
+        }
     }
-    public void sendNotification(String password) {
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("New Password set")
-                        .setContentText(password);
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(001, mBuilder.build());
+
+    public boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+            return true;
+        }
+        return false;
+    }
+
+
+    @Override
+    public void onResume() {
+        super.onResume();
     }
 
     @Override
     public void onClick(View v) {
-        if(v == lock){
+        if (v == lock) {
+            password = sharedPreferences.getString("password", "");
             boolean active = deviceManger.isAdminActive(compName);
             if (active) {
-             /*   Random rand = new Random();
-                password = rand.nextInt(8999)+1000;
-                Log.d("password",password+"");*/
-              sendNotification(password+"");
-               try {
-                  deviceManger.resetPassword(password+"",DevicePolicyManager.RESET_PASSWORD_REQUIRE_ENTRY);
+                try {
+                    deviceManger.resetPassword(password + "", DevicePolicyManager.RESET_PASSWORD_REQUIRE_ENTRY);
                     deviceManger.lockNow();
-                }catch(NullPointerException e){
-                    Log.e("NullPE_deviceManger",e.toString());
+                } catch (NullPointerException e) {
+                    Log.e("NullPE_deviceManger", e.toString());
                 }
             }
         }
 
-        if(v == enable){
+        if (v == enable) {
             Intent intent = new Intent(DevicePolicyManager
                     .ACTION_ADD_DEVICE_ADMIN);
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN,
@@ -112,29 +144,21 @@ Log.i("gfx","start");
             startActivityForResult(intent, RESULT_ENABLE);
         }
 
-        if(v == disable){
+        if (v == disable) {
             deviceManger.removeActiveAdmin(compName);
         }
 
-        if(v == top_app){
-            Intent i = new Intent(getApplicationContext(),UsageStatsActivity.class);
-            startActivity(i);
-                }
-        if(v == top_url){
-            Intent i = new Intent(getApplicationContext(),URLActivity.class);
+        if (v == top_app) {
+            Intent i = new Intent(getApplicationContext(), UsageStatsActivity.class);
             startActivity(i);
         }
-    }
-
-    private void updateButtonStates() {
-        boolean active = deviceManger.isAdminActive(compName);
-        if (active) {
-            enable.setEnabled(false);
-            disable.setEnabled(true);
-
-        } else {
-            enable.setEnabled(true);
-            disable.setEnabled(false);
+        if (v == top_url) {
+            Intent i = new Intent(getApplicationContext(), URLActivity.class);
+            startActivity(i);
+        }
+        if (v == login) {
+            Intent i = new Intent(getApplicationContext(), LoginActivity.class);
+            startActivity(i);
         }
     }
 
