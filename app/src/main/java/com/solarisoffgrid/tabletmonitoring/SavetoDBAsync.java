@@ -8,14 +8,15 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Calendar;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.solarisoffgrid.tabletmonitoring.BackgroundCheckReceiver.fetchTopAppAsync;
-import static com.solarisoffgrid.tabletmonitoring.BackgroundCheckReceiver.fetchTopWebSiteAsync;
 
 public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
     private Context ctx;
@@ -36,10 +37,7 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
         daoApp.openToRead();
         tablet.setTop_app(daoApp.getAllApp());
         daoApp.close();
-        DAOWebsite daoWebsite = new DAOWebsite(ctx);
-        daoWebsite.openToRead();
-        tablet.setTop_website(daoWebsite.getAllWebSite());
-        daoWebsite.close();
+
 
 
     }
@@ -48,26 +46,20 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... errors) {
 
-        if (fetchTopAppAsync.finished && fetchTopWebSiteAsync.finished) {
+        if (fetchTopAppAsync.finished) {
             SharedPreferences.Editor editor = mPrefs.edit();
             editor.putBoolean(ctx.getResources().getString(R.string.sharedpref_service), false);
             editor.commit();
-            Connection c = null;
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
-            Log.i("servicebg", Calendar.getInstance().getTime().toString());
             JSONObject jsonObject = JsonUtils.toJSon(tablet);
-            try {
-                Class.forName(ctx.getResources().getString(R.string.postgres_driver));
-                c = DriverManager
-                        .getConnection(ctx.getResources().getString(R.string.postgres_address_db),
-                                ctx.getResources().getString(R.string.postgres_user), ctx.getResources().getString(R.string.postgres_password));
-                PreparedStatement statement;
-                statement = c.prepareStatement("insert into tablet (tablet_serial,details) values (?,to_json(?::json)) ");
-                statement.setObject(1, tablet.getTablet_serial());
-                statement.setString(2, jsonObject.toString());
-                statement.executeUpdate();
-                c.close();
+    /*        try {
+               HttpPost httpPost = new HttpPost(url);
+                StringEntity entity = new StringEntity(jsonObj.toString(), HTTP.UTF_8);
+                entity.setContentType("application/json");
+                httpPost.setEntity(entity);
+                HttpClient client = new DefaultHttpClient();
+                HttpResponse response = client.execute(httpPost);
                 Log.e("servicebg", "insert success");
             } catch (Exception e) {
                 e.printStackTrace();
@@ -86,7 +78,48 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     Log.e("servicebg", "db fail");
+                }*/
+
+
+            StringBuilder sb = new StringBuilder();
+            String http = ctx.getResources().getString(R.string.url_save_reports);
+            HttpURLConnection urlConnection = null;
+            try {
+                URL url = new URL(http);
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setDoOutput(true);
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setDoInput(true);
+                urlConnection.setUseCaches(false);
+                urlConnection.setConnectTimeout(10000);
+                urlConnection.setReadTimeout(10000);
+                urlConnection.setRequestProperty("Content-Type", "application/json");
+                urlConnection.setRequestProperty("Accept", "application/json");
+                urlConnection.connect();
+                OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
+                wr.write(jsonObject.toString());
+                wr.flush();
+                int HttpResult = urlConnection.getResponseCode();
+                if (HttpResult == HttpURLConnection.HTTP_OK) {
+               /*     BufferedReader br = new BufferedReader(new InputStreamReader(
+                            urlConnection.getInputStream(),"utf-8"));
+                    String line = null;
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line + "\n");
+                    }
+                    br.close();
+                    Log.i("servicebg",""+sb.toString());*/
+
+                } else {
+                    Log.i("servicebg", urlConnection.getResponseMessage());
                 }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (urlConnection != null)
+                    urlConnection.disconnect();
             }
 
         } else {

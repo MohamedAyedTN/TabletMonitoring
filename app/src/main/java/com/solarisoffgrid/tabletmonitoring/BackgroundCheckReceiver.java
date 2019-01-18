@@ -23,7 +23,7 @@ public class BackgroundCheckReceiver extends BroadcastReceiver {
             fetchTopWebSiteAsync = new FetchTopWebSiteAsync(arg0);
             fetchPaygStatus = new FetchPaygStatus(arg0);
             fetchTopAppAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
-            fetchTopWebSiteAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+            //       fetchTopWebSiteAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
             fetchPaygStatus.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
         }
     }

@@ -11,7 +11,7 @@ public class Tablet {
     private String expirtaion_date;
     private String tablet_password;
     private List<App> top_app;
-    private List<WebSite> top_website;
+    //   private List<WebSite> top_website;
 
     public Tablet() {
     }
@@ -72,13 +72,7 @@ public class Tablet {
         this.top_app = top_app;
     }
 
-    public List<WebSite> getTop_website() {
-        return top_website;
-    }
 
-    public void setTop_website(List<WebSite> top_website) {
-        this.top_website = top_website;
-    }
 
 
 }

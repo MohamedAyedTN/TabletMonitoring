@@ -47,13 +47,25 @@
     <string name="app_item_5">Category: </string>
 
     <string name="url_get_expiration_date_and_password">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/payg_tablets/</string>
+    <string name="url_save_reports">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/monitoring/reports</string>
+    <string name="url_register_tablet">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/payg_tablets/register</string>
 
     <string name="date_format">yyyy-MM-dd</string>
+    <string name="no_connection_toast">Please check your connection</string>
 
     <integer name="TOP_WEBSITE_NUMBER">10</integer>
     <integer name="TOP_APP_NUMBER">10</integer>
-    <integer name="data_used_interval_in_months">3</integer>
-    <integer name="service_loop_interval_in_milliseconds">10000</integer>
+    <integer name="data_used_interval_in_months">1</integer>
+    <integer name="app_used_interval_in_months">1</integer>
+    <integer name="service_loop_interval_in_milliseconds">1000</integer>
 
-
+    <string-array name="packages_to_ignore">
+        <item>PAYG Locking App</item>
+        <item>Launcher3</item>
+        <item>Settings</item>
+        <item>Package installer</item>
+        <item>System UI</item>
+        <item>Google Play services</item>
+        <item>Google App</item>
+    </string-array>
 </resources>

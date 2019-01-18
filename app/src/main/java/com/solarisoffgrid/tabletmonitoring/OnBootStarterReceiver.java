@@ -18,9 +18,8 @@ public class OnBootStarterReceiver extends BroadcastReceiver {
         pendingIntent = PendingIntent.getBroadcast(arg0, 0, alarmIntent, 0);
         manager = (AlarmManager) arg0.getSystemService(Context.ALARM_SERVICE);
         int interval = arg0.getResources().getInteger(R.integer.service_loop_interval_in_milliseconds);
-        manager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
+        manager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
         arg0.sendBroadcast(alarmIntent);
         arg0.startService(new Intent(arg0, ConnectionService.class));
-
     }
 }

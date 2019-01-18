@@ -24,8 +24,12 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import java.sql.Time;
 import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -62,13 +66,14 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
     protected List<App> doInBackground(Void... errors) {
         drawables = new ArrayList<>();
         apps = new ArrayList<>();
+        List<String> packages_to_ignore = Arrays.asList(ctx.getResources().getStringArray(R.array.packages_to_ignore));
         String category;
         int result = ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_PHONE_STATE);
         mUsageStatsManager = (UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
         usage_permisson = checkForPermission(ctx);
         PackageManager pm = ctx.getPackageManager();
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -7);
+        cal.add(Calendar.MONTH, -ctx.getResources().getInteger(R.integer.app_used_interval_in_months));
         if (result == PackageManager.PERMISSION_GRANTED) {
             DAOApp daoApp = new DAOApp(ctx);
             daoApp.openToWrite();
@@ -76,7 +81,7 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
             daoApp.close();
             final List<UsageStats> stats =
                     mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST,
-                            cal.getTimeInMillis(), System.currentTimeMillis());
+                            cal.getTimeInMillis(), Calendar.getInstance().getTimeInMillis());
             if (stats == null) {
                 return null;
             }
@@ -88,46 +93,81 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
                     ApplicationInfo appInfo = pm.getApplicationInfo(us.getPackageName(), 0);
                     String label = appInfo.loadLabel(pm).toString();
                     if (!label.equals(us.getPackageName()) && us.getTotalTimeInForeground() != 0) {
-                        App app = new App();
-                        topAppCount++;
                         String packageName = us.getPackageName();
                         if (packageName.contains("package:")) {
                             packageName = packageName.replace("package:", "");
                         }
-                        app.setIcon(appInfo.loadIcon(pm));
-                        app.setApp_name(label);
-                        app.setLast_use(DateUtils.formatSameDayTime(us.getLastTimeUsed(),
-                                System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM) + "");
-                        app.setUsed_for(DateUtils.formatElapsedTime(us.getTotalTimeInForeground() / 1000));
-                        String query_url = GOOGLE_URL + packageName;
-                        category = getCategory(query_url);
-                        app.setCategory(category);
-                        if (usage_permisson) {
-                            int uid = 0;
-                            try {
-                                uid = pm.getApplicationInfo(us.getPackageName(), 0).uid;
-                                TelephonyManager tm = (TelephonyManager) ctx.getSystemService(TELEPHONY_SERVICE);
-                                String subscriberID = tm.getSubscriberId();
-                                NetworkStats networkStatsByApp;
-                                long received = 0, send = 0;
-                                networkStatsByApp = nsm.queryDetailsForUid(ConnectivityManager.TYPE_MOBILE, subscriberID, getTodayPlus(Calendar.MONTH, -ctx.getResources().getInteger(R.integer.data_used_interval_in_months)), getTodayPlus(0, 0), uid);
-                                while (networkStatsByApp.hasNextBucket()) {
-                                    NetworkStats.Bucket bucket = new NetworkStats.Bucket();
-                                    networkStatsByApp.getNextBucket(bucket);
-                                    received = received + bucket.getRxBytes();
-                                    send = send + bucket.getTxBytes();
+                        if (!packages_to_ignore.contains(label)) {
+                            App app = new App();
+                            topAppCount++;
+                            Log.i("pkg", topAppCount + "/ " + label);
+
+                            app.setIcon(appInfo.loadIcon(pm));
+                            app.setApp_name(label);
+                            app.setLast_use(DateUtils.formatSameDayTime(us.getLastTimeUsed(),
+                                    System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM) + "");
+                            app.setUsed_for(DateUtils.formatElapsedTime(us.getTotalTimeInForeground() / 1000));
+                            String query_url = GOOGLE_URL + packageName;
+                            category = getCategory(query_url);
+                            app.setCategory(category);
+                            if (usage_permisson) {
+                                int uid = 0;
+                                try {
+                                    uid = pm.getApplicationInfo(us.getPackageName(), 0).uid;
+                                    TelephonyManager tm = (TelephonyManager) ctx.getSystemService(TELEPHONY_SERVICE);
+                                    String subscriberID = tm.getSubscriberId();
+                                    NetworkStats networkStatsByApp;
+                                    long received = 0, send = 0;
+                                    networkStatsByApp = nsm.queryDetailsForUid(ConnectivityManager.TYPE_MOBILE, subscriberID, getTodayPlus(Calendar.MONTH, -ctx.getResources().getInteger(R.integer.data_used_interval_in_months)), getTodayPlus(0, 0), uid);
+                                    while (networkStatsByApp.hasNextBucket()) {
+                                        NetworkStats.Bucket bucket = new NetworkStats.Bucket();
+                                        networkStatsByApp.getNextBucket(bucket);
+                                        received = received + bucket.getRxBytes();
+                                        send = send + bucket.getTxBytes();
+                                    }
+                                    networkStatsByApp.close();
+                                    networkStatsByApp = nsm.queryDetailsForUid(ConnectivityManager.TYPE_WIFI, subscriberID, getTodayPlus(Calendar.MONTH, -ctx.getResources().getInteger(R.integer.data_used_interval_in_months)), getTodayPlus(0, 0), uid);
+                                    while (networkStatsByApp.hasNextBucket()) {
+                                        NetworkStats.Bucket bucket = new NetworkStats.Bucket();
+                                        networkStatsByApp.getNextBucket(bucket);
+                                        received = received + bucket.getRxBytes();
+                                        send = send + bucket.getTxBytes();
+                                    }
+                                    networkStatsByApp.close();
+                                    app.setData_received(formatSize(received));
+                                    app.setData_sent(formatSize(send));
+                                    long adding_result;
+                                    daoApp.openToWrite();
+                                    adding_result = daoApp.insertApp(app);
+                                    daoApp.close();
+                                    if (adding_result != -1) {
+                                        apps.add(app);
+                                        drawables.add(appInfo.loadIcon(pm));
+                                    } else {
+                                        daoApp.openToRead();
+                                        App registred_app = daoApp.getAppByName(app.getApp_name());
+                                        daoApp.close();
+                                        if (registred_app.getLast_use().compareTo(app.getLast_use()) > 0) {
+                                            DateFormat formatter = new SimpleDateFormat("mm:ss");
+                                            Time timeValue = new Time(formatter.parse(registred_app.getUsed_for()).getTime());
+                                            app.setUsed_for(DateUtils.formatElapsedTime((timeValue.getTime() + us.getTotalTimeInForeground()) / 1000));
+                                            daoApp.openToWrite();
+                                            daoApp.updateApp(app);
+                                            daoApp.close();
+                                            Log.e("pkg", "updated");
+                                        }
+                                    }
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                } catch (PackageManager.NameNotFoundException e) {
+                                    e.printStackTrace();
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
                                 }
-                                networkStatsByApp.close();
-                                networkStatsByApp = nsm.queryDetailsForUid(ConnectivityManager.TYPE_WIFI, subscriberID, getTodayPlus(Calendar.MONTH, -ctx.getResources().getInteger(R.integer.data_used_interval_in_months)), getTodayPlus(Calendar.YEAR, 3), uid);
-                                while (networkStatsByApp.hasNextBucket()) {
-                                    NetworkStats.Bucket bucket = new NetworkStats.Bucket();
-                                    networkStatsByApp.getNextBucket(bucket);
-                                    received = received + bucket.getRxBytes();
-                                    send = send + bucket.getTxBytes();
-                                }
-                                networkStatsByApp.close();
-                                app.setData_received(formatSize(received));
-                                app.setData_sent(formatSize(send));
+                            } else {
+                                Log.i("servicebg", "permisson not granted for usage ");
+                                app.setData_received(formatSize(0));
+                                app.setData_sent(formatSize(0));
                                 long adding_result;
                                 daoApp.openToWrite();
                                 adding_result = daoApp.insertApp(app);
@@ -136,22 +176,6 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
                                     apps.add(app);
                                     drawables.add(appInfo.loadIcon(pm));
                                 }
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            } catch (PackageManager.NameNotFoundException e) {
-                                e.printStackTrace();
-                            }
-                        } else {
-                            Log.i("servicebg", "permisson not granted for usage ");
-                            app.setData_received(formatSize(0));
-                            app.setData_sent(formatSize(0));
-                            long adding_result;
-                            daoApp.openToWrite();
-                            adding_result = daoApp.insertApp(app);
-                            daoApp.close();
-                            if (adding_result != -1) {
-                                apps.add(app);
-                                drawables.add(appInfo.loadIcon(pm));
                             }
                         }
                     }

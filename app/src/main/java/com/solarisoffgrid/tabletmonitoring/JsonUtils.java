@@ -51,7 +51,7 @@ public class JsonUtils {
                 jsonObj.put("top_app", jsonArrApp);
             }
 
-            JSONArray jsonArrWeb = new JSONArray();
+    /*        JSONArray jsonArrWeb = new JSONArray();
             try {
                 for (WebSite pn : tablet.getTop_website()) {
                     JSONObject tpObj = new JSONObject();
@@ -72,7 +72,7 @@ public class JsonUtils {
                     jsonArrWeb.put(tpObj);
                 }
                 jsonObj.put("top_website", jsonArrWeb);
-            }
+            }*/
             return jsonObj;
         } catch (JSONException ex) {
             ex.printStackTrace();

@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import static android.app.AppOpsManager.OPSTR_WRITE_SETTINGS;
 
@@ -94,16 +95,18 @@ public class LoginActivity extends Activity implements OnClickListener {
     @Override
     public void onClick(View v) {
         if (v == btnLogin) {
-            String phone = phoneNumber.getText().toString();
-            if (phone.startsWith("+255") && phone.length() == 13) {
-                RegisterTabletAsync registerTabletAsync = new RegisterTabletAsync(ctx, phone);
-                registerTabletAsync.execute();
-                Intent i = new Intent(getApplicationContext(), PaymentCheckActivity.class);
-                startActivity(i);
-            } else {
-                phoneNumber.setError(ctx.getResources().getString(R.string.login_phone_error));
-            }
+            if (isOnline()) {
+                String phone = phoneNumber.getText().toString();
+                if (phone.startsWith("+255") && phone.length() == 13) {
+                    RegisterTabletAsync registerTabletAsync = new RegisterTabletAsync(ctx, phone);
+                    registerTabletAsync.execute();
 
+                } else {
+                    phoneNumber.setError(ctx.getResources().getString(R.string.login_phone_error));
+                }
+            } else {
+                Toast.makeText(ctx, R.string.no_connection_toast, Toast.LENGTH_LONG).show();
+            }
         }
 
     }
