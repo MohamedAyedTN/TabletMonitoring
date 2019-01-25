@@ -15,7 +15,10 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -135,14 +138,28 @@ public class UsageStatsActivity extends Activity implements AsyncResponse {
             App app = apps.get(position);
             holder.pkgName.setText(app.getApp_name());
             holder.lastTimeUsed.setText(ctx.getResources().getString(R.string.app_item_1) + app.getLast_use());
-            holder.usageTime.setText(ctx.getResources().getString(R.string.app_item_2) + app.getUsed_for());
-            holder.usageData.setText(ctx.getResources().getString(R.string.app_item_3) + app.getData_sent()
-                    + ctx.getResources().getString(R.string.app_item_4) + app.getData_received());
+            holder.usageTime.setText(ctx.getResources().getString(R.string.app_item_2) + from_long_to_timer(app.getUsed_for()));
+            holder.usageData.setText(ctx.getResources().getString(R.string.app_item_3) + from_byte_to_KB(app.getData_sent())
+                    + ctx.getResources().getString(R.string.app_item_4) + from_byte_to_KB(app.getData_received()));
             holder.pkgIcon.setImageDrawable(scaleImage(app.getIcon()));
             holder.category.setText(ctx.getResources().getString(R.string.app_item_5) + app.getCategory());
             holder.pkgIcon.setImageDrawable(scaleImage(FetchTopAppAsync.drawables.get(position)));
             return convertView;
         }
     }
+
+    public String from_long_to_timer(long millis) {
+        Date datetime = new Date(millis * 1000);
+        DateFormat formattes2 = new SimpleDateFormat("HH:mm:ss");
+        String dateFormatted2 = formattes2.format(datetime);
+        return dateFormatted2;
+    }
+
+    private String from_byte_to_KB(long sizeBytes) {
+        //  return Formatter.formatFileSize(ctx, sizeBytes);
+        return sizeBytes / 1024 + " Kb";
+
+    }
+
 }
 

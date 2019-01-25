@@ -72,10 +72,10 @@ public class DAOApp {
         if (c.moveToFirst()) {
             app.setApp_name(c.getString(0));
             app.setLast_use((c.getString(1)));
-            app.setUsed_for((c.getString(2)));
+            app.setUsed_for((c.getLong(2)));
             app.setCategory((c.getString(3)));
-            app.setData_sent((c.getString(4)));
-            app.setData_received((c.getString(5)));
+            app.setData_sent((c.getLong(4)));
+            app.setData_received((c.getLong(5)));
         }
         c.close();
         return app;
@@ -103,10 +103,10 @@ public class DAOApp {
                 App app = new App();
                 app.setApp_name(c.getString(0));
                 app.setLast_use((c.getString(1)));
-                app.setUsed_for((c.getString(2)));
+                app.setUsed_for((c.getLong(2)));
                 app.setCategory((c.getString(3)));
-                app.setData_sent((c.getString(4)));
-                app.setData_received((c.getString(5)));
+                app.setData_sent((c.getLong(4)));
+                app.setData_received((c.getLong(5)));
 
                 apps.add(app);
             } while (c.moveToNext());

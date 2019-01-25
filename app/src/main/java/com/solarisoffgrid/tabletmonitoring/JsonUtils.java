@@ -17,12 +17,12 @@ public class JsonUtils {
         try {
             // Here we convert Java Object to JSON
             JSONObject jsonObj = new JSONObject();
-            jsonObj.put("tablet_serial", tablet.getTablet_serial());
+            jsonObj.put("serial_number", tablet.getTablet_serial());
             jsonObj.put("report_date", tablet.getReport_date());
-            jsonObj.put("client_phone", tablet.getClient_phone());
+        /*    jsonObj.put("client_phone", tablet.getClient_phone());
             jsonObj.put("paygstatus", tablet.getPayg_status());
             jsonObj.put("expiration_date", tablet.getExpirtaion_date());
-            jsonObj.put("tablet_password", tablet.getTablet_password());
+            jsonObj.put("tablet_password", tablet.getTablet_password());*/
 
             JSONArray jsonArrApp = new JSONArray();
             try {
@@ -86,11 +86,42 @@ public class JsonUtils {
         try {
             JSONObject mainObject = new JSONObject(response);
             String expiration_time = mainObject.getString("expiration_time");
-            String password = mainObject.getString("Password");
+            String password = mainObject.getString("password");
             Log.i("servicebg", "password " + password);
             Log.i("servicebg", "expiration_time " + expiration_time);
             editor.putString(context.getResources().getString(R.string.sharedpref_expiration_date), expiration_time);
             editor.putString(context.getResources().getString(R.string.sharedpref_password), password);
+            editor.commit();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void extractPaygStatusatRegistration(String response, Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(context.getResources().getString(R.string.sharedpref_title), MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        try {
+            JSONObject mainObject = new JSONObject(response);
+            String expiration_time = mainObject.getString("active_until");
+            String password = mainObject.getString("password");
+            Log.i("servicebg", "password " + password);
+            Log.i("servicebg", "expiration_time " + expiration_time);
+            editor.putString(context.getResources().getString(R.string.sharedpref_expiration_date), expiration_time);
+            editor.putString(context.getResources().getString(R.string.sharedpref_password), password);
+            editor.commit();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void extractAccessToken(String response, Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(context.getResources().getString(R.string.sharedpref_title), MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        try {
+            JSONObject mainObject = new JSONObject(response);
+            String token = mainObject.getString("token");
+            Log.i("register", "token/ " + token);
+            editor.putString(context.getResources().getString(R.string.sharedpref_access_token), token);
             editor.commit();
         } catch (JSONException e) {
             e.printStackTrace();

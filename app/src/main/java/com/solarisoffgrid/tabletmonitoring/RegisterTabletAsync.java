@@ -23,11 +23,13 @@ import java.net.URL;
 import java.sql.Connection;
 
 import static android.content.Context.MODE_PRIVATE;
+import static com.solarisoffgrid.tabletmonitoring.JsonUtils.extractPaygStatusatRegistration;
 
-public class RegisterTabletAsync extends AsyncTask<Void, Boolean, Boolean> {
+public class RegisterTabletAsync extends AsyncTask<Void, Integer, Integer> {
     private Context ctx;
     private String phone;
-
+    StringBuilder sb;
+    SharedPreferences mPrefs;
 
     public RegisterTabletAsync(Context context, String phone) {
         ctx = context;
@@ -36,14 +38,13 @@ public class RegisterTabletAsync extends AsyncTask<Void, Boolean, Boolean> {
 
 
     @Override
-    protected Boolean doInBackground(Void... voids) {
-        SharedPreferences mPrefs = ctx.getSharedPreferences(ctx.getResources().getString(R.string.sharedpref_title), MODE_PRIVATE);
-
+    protected Integer doInBackground(Void... voids) {
+        int HttpResult = 0;
+        mPrefs = ctx.getSharedPreferences(ctx.getResources().getString(R.string.sharedpref_title), MODE_PRIVATE);
         Connection c = null;
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
-
-        StringBuilder sb = new StringBuilder();
+        sb = new StringBuilder();
         String http = ctx.getResources().getString(R.string.url_register_tablet);
         HttpURLConnection urlConnection = null;
         try {
@@ -59,29 +60,55 @@ public class RegisterTabletAsync extends AsyncTask<Void, Boolean, Boolean> {
             urlConnection.setRequestProperty("Accept", "application/json");
             urlConnection.connect();
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("tablet_id", mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_serial), ""));
-            jsonObject.put("client_phone_number", phone);
+            jsonObject.put("serial_number", mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_serial), ""));
+            jsonObject.put("phone_number", phone);
+            Log.i("register", "0/" + jsonObject.toString());
+
             OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
             wr.write(jsonObject.toString());
             wr.flush();
-            int HttpResult = urlConnection.getResponseCode();
-            if (HttpResult == HttpURLConnection.HTTP_OK) {
+            HttpResult = urlConnection.getResponseCode();
+            Log.i("register", "0/" + HttpResult);
+            if (HttpResult == 201) {
+
                 BufferedReader br = new BufferedReader(new InputStreamReader(
                         urlConnection.getInputStream(), "utf-8"));
-                String line = null;
+                String line;
                 while ((line = br.readLine()) != null) {
                     sb.append(line + "\n");
                 }
                 br.close();
-                Log.i("servicebg", "2/" + sb.toString());
+                Log.i("register", "200/" + sb.toString());
+                String token = urlConnection.getHeaderField("token");
+                Log.i("register", "token/" + token);
 
+                SharedPreferences.Editor editor = mPrefs.edit();
+                editor.putString(ctx.getResources().getString(R.string.sharedpref_access_token), token);
+                editor.commit();
+                extractPaygStatusatRegistration(sb.toString(), ctx);
+                //   JsonUtils.extractAccessToken(sb.toString(),ctx);
+
+            } else if (HttpResult == 400) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        urlConnection.getErrorStream(), "utf-8"));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+                br.close();
+                Log.i("register", "400/" + sb.toString());
             } else {
-                return false;
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        urlConnection.getErrorStream(), "utf-8"));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+                br.close();
+                Log.i("register", HttpResult + "/" + sb.toString());
             }
-            SharedPreferences.Editor editor = mPrefs.edit();
-            editor.putString(ctx.getResources().getString(R.string.sharedpref_phone), phone);
-            editor.putBoolean(ctx.getResources().getString(R.string.sharedpref_payg_status), true);
-            editor.commit();
+
+
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -93,17 +120,33 @@ public class RegisterTabletAsync extends AsyncTask<Void, Boolean, Boolean> {
                 urlConnection.disconnect();
         }
 
-        return true;
+        return HttpResult;
     }
 
     @Override
-    protected void onPostExecute(Boolean bool) {
-        if (bool) {
+    protected void onPostExecute(Integer result) {
+
+        if (result == 201) {
+            SharedPreferences.Editor editor = mPrefs.edit();
+            editor.putString(ctx.getResources().getString(R.string.sharedpref_phone), phone);
+            editor.putBoolean(ctx.getResources().getString(R.string.sharedpref_payg_status), true);
+            editor.commit();
             Intent i = new Intent(ctx.getApplicationContext(), PaymentCheckActivity.class);
             ctx.startActivity(i);
         } else {
-            Toast.makeText(ctx, R.string.no_connection_toast, Toast.LENGTH_LONG).show();
+            String serial_toast = "";
+            try {
+                JSONObject obj = new JSONObject(sb.toString());
+                serial_toast = obj.getString("serial_number");
+                Toast.makeText(ctx, obj.getString("client_id"), Toast.LENGTH_LONG).show();
+
+            } catch (Throwable t) {
+                Log.e("register", "Could not parse malformed JSON: \"" + sb.toString() + "\"");
+                Toast.makeText(ctx, serial_toast, Toast.LENGTH_LONG).show();
+
+            }
         }
+
     }
 
     public boolean isOnline() {

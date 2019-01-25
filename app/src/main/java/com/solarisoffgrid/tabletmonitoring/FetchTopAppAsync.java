@@ -16,23 +16,20 @@ import android.os.AsyncTask;
 import android.os.RemoteException;
 import android.support.v4.content.ContextCompat;
 import android.telephony.TelephonyManager;
-import android.text.format.DateUtils;
-import android.text.format.Formatter;
 import android.util.Log;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.sql.Time;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import static android.app.AppOpsManager.MODE_ALLOWED;
@@ -66,6 +63,7 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
     protected List<App> doInBackground(Void... errors) {
         drawables = new ArrayList<>();
         apps = new ArrayList<>();
+
         List<String> packages_to_ignore = Arrays.asList(ctx.getResources().getStringArray(R.array.packages_to_ignore));
         String category;
         int result = ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_PHONE_STATE);
@@ -100,13 +98,20 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
                         if (!packages_to_ignore.contains(label)) {
                             App app = new App();
                             topAppCount++;
-                            Log.i("pkg", topAppCount + "/ " + label);
 
                             app.setIcon(appInfo.loadIcon(pm));
                             app.setApp_name(label);
-                            app.setLast_use(DateUtils.formatSameDayTime(us.getLastTimeUsed(),
-                                    System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM) + "");
-                            app.setUsed_for(DateUtils.formatElapsedTime(us.getTotalTimeInForeground() / 1000));
+                            //  app.setLast_use(DateUtils.formatSameDayTime(us.getLastTimeUsed(),System.currentTimeMillis(), DateFormat.MEDIUM, DateFormat.MEDIUM) + "");
+
+                            Date date = new Date(us.getLastTimeUsed());
+                            DateFormat formattes = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+                            String dateFormatted = formattes.format(date);
+                            dateFormatted = dateFormatted.replace(" ", "T").concat("Z");
+                            app.setLast_use(dateFormatted);
+
+                            app.setUsed_for(us.getTotalTimeInForeground() / 1000);
+
+
                             String query_url = GOOGLE_URL + packageName;
                             category = getCategory(query_url);
                             app.setCategory(category);
@@ -134,8 +139,8 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
                                         send = send + bucket.getTxBytes();
                                     }
                                     networkStatsByApp.close();
-                                    app.setData_received(formatSize(received));
-                                    app.setData_sent(formatSize(send));
+                                    app.setData_received(received);
+                                    app.setData_sent(send);
                                     long adding_result;
                                     daoApp.openToWrite();
                                     adding_result = daoApp.insertApp(app);
@@ -148,26 +153,21 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
                                         App registred_app = daoApp.getAppByName(app.getApp_name());
                                         daoApp.close();
                                         if (registred_app.getLast_use().compareTo(app.getLast_use()) > 0) {
-                                            DateFormat formatter = new SimpleDateFormat("mm:ss");
-                                            Time timeValue = new Time(formatter.parse(registred_app.getUsed_for()).getTime());
-                                            app.setUsed_for(DateUtils.formatElapsedTime((timeValue.getTime() + us.getTotalTimeInForeground()) / 1000));
+                                            app.setUsed_for(registred_app.getUsed_for() + app.getUsed_for());
                                             daoApp.openToWrite();
                                             daoApp.updateApp(app);
                                             daoApp.close();
-                                            Log.e("pkg", "updated");
                                         }
                                     }
                                 } catch (RemoteException e) {
                                     e.printStackTrace();
                                 } catch (PackageManager.NameNotFoundException e) {
                                     e.printStackTrace();
-                                } catch (ParseException e) {
-                                    e.printStackTrace();
                                 }
                             } else {
                                 Log.i("servicebg", "permisson not granted for usage ");
-                                app.setData_received(formatSize(0));
-                                app.setData_sent(formatSize(0));
+                                app.setData_received(0);
+                                app.setData_sent(0);
                                 long adding_result;
                                 daoApp.openToWrite();
                                 adding_result = daoApp.insertApp(app);
@@ -219,9 +219,6 @@ public class FetchTopAppAsync extends AsyncTask<Void, Void, List<App>> {
         //  }
     }
 
-    private String formatSize(long sizeBytes) {
-        return Formatter.formatFileSize(ctx, sizeBytes);
-    }
 
     private long getTodayPlus(int calendarField, int valueToAdd) {
         final Calendar calendar = Calendar.getInstance();

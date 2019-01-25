@@ -5,13 +5,14 @@ import java.util.List;
 public class Tablet {
 
     private String tablet_serial;
-    private String client_phone;
     private String report_date;
+    private List<App> top_app;
+
+  /*  private String client_phone;
     private Boolean payg_status;
     private String expirtaion_date;
     private String tablet_password;
-    private List<App> top_app;
-    //   private List<WebSite> top_website;
+    private List<WebSite> top_website;*/
 
     public Tablet() {
     }
@@ -32,7 +33,7 @@ public class Tablet {
         this.tablet_serial = tablet_serial;
     }
 
-    public String getClient_phone() {
+ /*   public String getClient_phone() {
         return client_phone;
     }
 
@@ -62,7 +63,7 @@ public class Tablet {
 
     public void setTablet_password(String tablet_password) {
         this.tablet_password = tablet_password;
-    }
+    }*/
 
     public List<App> getTop_app() {
         return top_app;

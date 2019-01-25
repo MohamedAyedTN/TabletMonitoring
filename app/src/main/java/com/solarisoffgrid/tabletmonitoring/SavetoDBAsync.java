@@ -8,12 +8,17 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.solarisoffgrid.tabletmonitoring.BackgroundCheckReceiver.fetchTopAppAsync;
@@ -28,16 +33,21 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
         tablet = new Tablet();
         mPrefs = context.getSharedPreferences(ctx.getResources().getString(R.string.sharedpref_title), MODE_PRIVATE);
         tablet.setTablet_serial(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_serial), ""));
-        tablet.setReport_date(Calendar.getInstance().getTime().toString());
-        tablet.setClient_phone(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_phone), ""));
+
+        Date date = new Date(Calendar.getInstance().getTimeInMillis());
+        DateFormat formattes = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        String dateFormatted = formattes.format(date);
+        dateFormatted = dateFormatted.replace(" ", "T").concat("Z");
+        tablet.setReport_date(dateFormatted);
+
+     /*   tablet.setClient_phone(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_phone), ""));
         tablet.setExpirtaion_date(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_expiration_date), ""));
         tablet.setPayg_status(mPrefs.getBoolean(ctx.getResources().getString(R.string.sharedpref_payg_status), true));
-        tablet.setTablet_password(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_password), ""));
+        tablet.setTablet_password(mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_password), ""));*/
         DAOApp daoApp = new DAOApp(ctx);
         daoApp.openToRead();
         tablet.setTop_app(daoApp.getAllApp());
         daoApp.close();
-
 
 
     }
@@ -53,6 +63,7 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
             JSONObject jsonObject = JsonUtils.toJSon(tablet);
+            Log.i("savedb", jsonObject.toString());
     /*        try {
                HttpPost httpPost = new HttpPost(url);
                 StringEntity entity = new StringEntity(jsonObj.toString(), HTTP.UTF_8);
@@ -80,7 +91,6 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
                     Log.e("servicebg", "db fail");
                 }*/
 
-
             StringBuilder sb = new StringBuilder();
             String http = ctx.getResources().getString(R.string.url_save_reports);
             HttpURLConnection urlConnection = null;
@@ -95,23 +105,33 @@ public class SavetoDBAsync extends AsyncTask<Void, Void, Void> {
                 urlConnection.setReadTimeout(10000);
                 urlConnection.setRequestProperty("Content-Type", "application/json");
                 urlConnection.setRequestProperty("Accept", "application/json");
+                urlConnection.setRequestProperty("Authorization", "Bearer " + mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_access_token), ""));
+
                 urlConnection.connect();
                 OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
                 wr.write(jsonObject.toString());
                 wr.flush();
                 int HttpResult = urlConnection.getResponseCode();
-                if (HttpResult == HttpURLConnection.HTTP_OK) {
-               /*     BufferedReader br = new BufferedReader(new InputStreamReader(
+                //    HttpURLConnection.HTTP_OK
+                if (HttpResult < 299) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(
                             urlConnection.getInputStream(),"utf-8"));
                     String line = null;
                     while ((line = br.readLine()) != null) {
                         sb.append(line + "\n");
                     }
                     br.close();
-                    Log.i("servicebg",""+sb.toString());*/
+                    Log.i("savedb", urlConnection.getResponseCode() + "/" + sb.toString());
 
                 } else {
-                    Log.i("servicebg", urlConnection.getResponseMessage());
+                    BufferedReader br = new BufferedReader(new InputStreamReader(
+                            urlConnection.getErrorStream(), "utf-8"));
+                    String line = null;
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line + "\n");
+                    }
+                    br.close();
+                    Log.i("savedb", urlConnection.getResponseCode() + "/" + sb.toString());
                 }
             } catch (MalformedURLException e) {
                 e.printStackTrace();

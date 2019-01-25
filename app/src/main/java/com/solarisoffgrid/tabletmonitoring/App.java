@@ -6,10 +6,10 @@ import android.graphics.drawable.Drawable;
 public class App {
     private String App_name;
     private String last_use;
-    private String used_for;
+    private long used_for;
     private String category;
-    private String data_sent;
-    private String data_received;
+    private long data_sent;
+    private long data_received;
     private Drawable icon;
 
 
@@ -52,11 +52,11 @@ public class App {
         this.last_use = last_use;
     }
 
-    public String getUsed_for() {
+    public long getUsed_for() {
         return used_for;
     }
 
-    public void setUsed_for(String used_for) {
+    public void setUsed_for(long used_for) {
         this.used_for = used_for;
     }
 
@@ -68,19 +68,19 @@ public class App {
         this.category = category;
     }
 
-    public String getData_sent() {
+    public long getData_sent() {
         return data_sent;
     }
 
-    public void setData_sent(String data_sent) {
+    public void setData_sent(long data_sent) {
         this.data_sent = data_sent;
     }
 
-    public String getData_received() {
+    public long getData_received() {
         return data_received;
     }
 
-    public void setData_received(String data_received) {
+    public void setData_received(long data_received) {
         this.data_received = data_received;
     }
 }

@@ -44,6 +44,8 @@ public class FetchPaygStatus extends AsyncTask<Void, Void, Boolean> {
         String stringUrl = URL + serial;
         String result;
         String inputLine;
+        StringBuilder sb = new StringBuilder();
+
         try {
             URL myUrl = new URL(stringUrl);
             HttpURLConnection connection = (HttpURLConnection)
@@ -51,9 +53,36 @@ public class FetchPaygStatus extends AsyncTask<Void, Void, Boolean> {
             connection.setRequestMethod(REQUEST_METHOD);
             connection.setReadTimeout(READ_TIMEOUT);
             connection.setConnectTimeout(CONNECTION_TIMEOUT);
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Authorization", "Bearer " + mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_access_token), ""));
             connection.connect();
+            Log.i("status", "token/ " + mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_access_token), ""));
+
             InputStreamReader streamReader = new
                     InputStreamReader(connection.getInputStream());
+            int HttpResult = connection.getResponseCode();
+            //    HttpURLConnection.HTTP_OK
+            if (HttpResult < 299) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        connection.getInputStream(), "utf-8"));
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+                br.close();
+                Log.i("status", connection.getResponseCode() + "/" + sb.toString());
+                extractPaygStatus(sb.toString(), ctx);
+            } else {
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        connection.getErrorStream(), "utf-8"));
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+                br.close();
+                Log.i("status", connection.getResponseCode() + "/" + sb.toString());
+            }
+            /*
             BufferedReader reader = new BufferedReader(streamReader);
             StringBuilder stringBuilder = new StringBuilder();
             while ((inputLine = reader.readLine()) != null) {
@@ -61,8 +90,9 @@ public class FetchPaygStatus extends AsyncTask<Void, Void, Boolean> {
             }
             reader.close();
             streamReader.close();
+
             result = stringBuilder.toString();
-            extractPaygStatus(result, ctx);
+            extractPaygStatus(result, ctx);*/
         } catch (IOException e) {
             e.printStackTrace();
             result = null;
@@ -80,11 +110,13 @@ public class FetchPaygStatus extends AsyncTask<Void, Void, Boolean> {
             Date expiration_date = new SimpleDateFormat(ctx.getResources().getString(R.string.date_format)).parse(shared_expiration_date.substring(0, 10));
             Date current_date = Calendar.getInstance().getTime();
             int expiration_status = expiration_date.compareTo(current_date);
+            String password = mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_password), "");
             if (expiration_status < 0) {
-                String password = mPrefs.getString(ctx.getResources().getString(R.string.sharedpref_password), "");
                 boolean active = deviceManger.isAdminActive(compName);
                 if (active) {
                     try {
+                        deviceManger.setPasswordQuality(compName, DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED);
+                        deviceManger.setPasswordMinimumLength(compName, 5);
                         deviceManger.resetPassword(password + "", DevicePolicyManager.RESET_PASSWORD_REQUIRE_ENTRY);
                         deviceManger.lockNow();
                     } catch (NullPointerException e) {
@@ -92,6 +124,9 @@ public class FetchPaygStatus extends AsyncTask<Void, Void, Boolean> {
                     }
                 }
             } else if (expiration_status > 0) {
+                deviceManger.setPasswordQuality(compName, DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED);
+                deviceManger.setPasswordMinimumLength(compName, 0);
+                deviceManger.resetPassword("", DevicePolicyManager.RESET_PASSWORD_DO_NOT_ASK_CREDENTIALS_ON_BOOT);
 
             } else {
 

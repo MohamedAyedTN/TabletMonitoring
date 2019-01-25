@@ -105,7 +105,7 @@ public class LoginActivity extends Activity implements OnClickListener {
                     phoneNumber.setError(ctx.getResources().getString(R.string.login_phone_error));
                 }
             } else {
-                Toast.makeText(ctx, R.string.no_connection_toast, Toast.LENGTH_LONG).show();
+                Toast.makeText(ctx, R.string.toast_no_connection, Toast.LENGTH_LONG).show();
             }
         }
 

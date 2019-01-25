@@ -20,7 +20,7 @@
     <string name="payment_title">Payment Status</string>
     <string name="payment_sub_title">Click \'Refresh\' after you paid to make sure it is up to date</string>
     <string name="payment_button_refresh">REFRESH STATUS</string>
-    <string name="payment_text_1">You have paid for the usage of your system until the </string>
+    <string name="payment_text_1">You have paid for the usage of your system until the\u0020</string>
     <string name="payment_text_2">. Make sure to pay again before that date to keep using your tablet.</string>
 
     <string name="sharedpref_title">tablet</string>
@@ -30,6 +30,8 @@
     <string name="sharedpref_service">service_running</string>
     <string name="sharedpref_phone">client_phone</string>
     <string name="sharedpref_payg_status">payg_status</string>
+    <string name="sharedpref_access_token">access_token</string>
+
 
     <string name="postgres_driver">org.postgresql.Driver</string>
     <string name="postgres_user">postgres</string>
@@ -37,30 +39,33 @@
     //192.168.21.121
     <string name="postgres_address_db">jdbc:postgresql://10.0.2.2:5432/testdb</string>
 
-    <string name="url_item_1">Last visit: </string>
-    <string name="url_item_2">Visits: </string>
+    <string name="url_item_1">Last visit:\u0020</string>
+    <string name="url_item_2">Visits:\u0020</string>
 
-    <string name="app_item_1">Last use: </string>
-    <string name="app_item_2">used for: </string>
-    <string name="app_item_3">Send :</string>
-    <string name="app_item_4">, Received :</string>
-    <string name="app_item_5">Category: </string>
+    <string name="app_item_1">Last use:\u0020</string>
+    <string name="app_item_2">used for:\u0020</string>
+    <string name="app_item_3">Send :\u0020</string>
+    <string name="app_item_4">, Received :\u0020</string>
+    <string name="app_item_5">Category:\u0020</string>
 
-    <string name="url_get_expiration_date_and_password">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/payg_tablets/</string>
-    <string name="url_save_reports">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/monitoring/reports</string>
-    <string name="url_register_tablet">https://virtserver.swaggerhub.com/MohamedAyedTN/Monitoring/1.0.0/payg_tablets/register</string>
+    <string name="url_get_expiration_date_and_password">http://178.62.238.83:8000/api/v1/tablets/</string>
+    <string name="url_save_reports">http://178.62.238.83:8000/api/v1/monitoring/reports/</string>
+    <string name="url_register_tablet">http://178.62.238.83:8000/api/v1/tablets/</string>
+    <string name="url_token_request"></string>
 
     <string name="date_format">yyyy-MM-dd</string>
-    <string name="no_connection_toast">Please check your connection</string>
+    <string name="toast_no_connection">Please check your connection</string>
+    <string name="toast_invalid_phone_number">No client registered with that number</string>
+    <string name="toast_already_registered_tablet">This tablet is already registered</string>
 
     <integer name="TOP_WEBSITE_NUMBER">10</integer>
     <integer name="TOP_APP_NUMBER">10</integer>
     <integer name="data_used_interval_in_months">1</integer>
     <integer name="app_used_interval_in_months">1</integer>
-    <integer name="service_loop_interval_in_milliseconds">1000</integer>
+    <integer name="service_loop_interval_in_milliseconds">900000</integer>
 
     <string-array name="packages_to_ignore">
-        <item>PAYG Locking App</item>
+        <!-- <item>PAYG Locking App</item> !-->
         <item>Launcher3</item>
         <item>Settings</item>
         <item>Package installer</item>
